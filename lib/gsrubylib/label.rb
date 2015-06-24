@@ -6,9 +6,9 @@ class GS
       private :new
     end
 
-    def Label.create(*symbols)
+    def Label.create(name, *symbols)
       validate_args(symbols)
-      label_class(symbols)
+      label_class(name, symbols)
     end
 
     private
@@ -22,16 +22,43 @@ class GS
       end
     end
 
-    def Label.label_class(symbols)
+    def Label.label_class(name, symbols)
       c = Class.new
       c.class_eval do
-        objects = symbols.each_with_object({}) { |s,h| h[s] = self.class.new.freeze }
-        const_set :OBJECTS, objects
-        symbols.each do |s|
-          define_method(s) { OBJECTS[s] }
-        end
+        define_method(:initialize) { |symbol| @symbol = symbol }
+        const_set :OBJECTS,
+          symbols.each_with_object({}) { |sym, hash|
+            hash[sym] = self.new(sym).freeze
+          }
+        define_method(:to_s)    { @symbol.to_s }
+        define_method(:to_sym)  { @symbol }
+        define_method(:symbol)  { @symbol }
+        define_method(:inspect) { "#{name}.#{symbol}" }
+        define_method(:==)      { |other| self.object_id == other.object_id }
+        define_method(:hash)    { @symbol.hash }
       end
+      # Define the methods by which each label is known (e.g. TrafficLight.red)
+      symbols.each do |sym|
+        c.define_singleton_method(sym) { c.const_get(:OBJECTS)[sym] }
+      end
+      c.define_singleton_method(:inspect) {
+        x = symbols.join(' ')
+        "#{name}[#{x}]"
+      }
+      c.define_singleton_method(:by_symbol) { |sym|
+        const_get(:OBJECTS)[sym] or raise ArgumentError,
+          "#{name}.#{sym} is not defined"
+      }
+      c.define_singleton_method(:[]) { |arg|
+        case arg
+        when Symbol then by_symbol(arg)    # Allow Colour[:red]
+        when self   then arg               # Allow Colour[Colour.red]
+        else
+          raise ArgumentError, "Can't convert #{arg.inspect} to #{name}"
+        end
+      }
       c
     end
+
   end  # class Label
 end  # class GS
