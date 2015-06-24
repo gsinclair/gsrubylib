@@ -6,9 +6,9 @@ class GS
       private :new
     end
 
-    def Label.create(name, *symbols)
+    def Label.create(*symbols)
       validate_args(symbols)
-      label_class(name, symbols)
+      label_class(symbols)
     end
 
     private
@@ -22,7 +22,7 @@ class GS
       end
     end
 
-    def Label.label_class(name, symbols)
+    def Label.label_class(symbols)
       c = Class.new
       c.class_eval do
         define_method(:initialize) { |symbol| @symbol = symbol }
@@ -33,7 +33,7 @@ class GS
         define_method(:to_s)    { @symbol.to_s }
         define_method(:to_sym)  { @symbol }
         define_method(:symbol)  { @symbol }
-        define_method(:inspect) { "#{name}.#{symbol}" }
+        define_method(:inspect) { "#{self.class.name}.#{symbol}" }
         define_method(:==)      { |other| self.object_id == other.object_id }
         define_method(:hash)    { @symbol.hash }
       end
@@ -43,18 +43,18 @@ class GS
       end
       c.define_singleton_method(:inspect) {
         x = symbols.join(' ')
-        "#{name}[#{x}]"
+        "#{c.name}[#{x}]"
       }
       c.define_singleton_method(:by_symbol) { |sym|
         const_get(:OBJECTS)[sym] or raise ArgumentError,
-          "#{name}.#{sym} is not defined"
+          "#{c.name}.#{sym} is not defined"
       }
       c.define_singleton_method(:[]) { |arg|
         case arg
         when Symbol then by_symbol(arg)    # Allow Colour[:red]
         when self   then arg               # Allow Colour[Colour.red]
         else
-          raise ArgumentError, "Can't convert #{arg.inspect} to #{name}"
+          raise ArgumentError, "Can't convert #{arg.inspect} to #{c.name}"
         end
       }
       c

@@ -3,7 +3,7 @@ require 'pry'
 
 D 'GS::Label' do
   D 'Type can be created (TrafficLightLabel)' do
-    TrafficLightLabel = GS::Label.create(:TrafficLightLabel, :green, :amber, :red)
+    TrafficLightLabel = GS::Label.create(:green, :amber, :red)
     #TrafficLightLabel = GS::Label::TrafficLightLabel
     T TrafficLightLabel.is_a? Class
     D 'Methods exist (TrafficLightLabel.red etc.)' do
