@@ -1,5 +1,11 @@
 # Gavin Sinclair's Ruby library (i.e. all the things I wish were in Ruby).
 
+# Now I don't have to load these separately in all my code.
+require 'debuglog'   unless $gs_nodebuglog
+require 'pry'        unless $gs_nopry
+require 'contracts'
+include Contracts
+
 # A containing class into which several classes are defined so as not to pollute
 # the top-level namespace.
 #  * GS::Basic        (defines methods in core classes; don't use this directly)
