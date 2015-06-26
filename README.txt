@@ -44,10 +44,15 @@ Next up is Labels.
 
 Planned: Value objects that can be used with Contracts.
 
-    Person = Contracts::Value.create(
-      name:     String,
-      age:      Nat,
-      married:  Boolean,       # Automatically creates predicate method #married?
-      REQUIRED: :ALL,          # Or list the required fields
-      DEFAULT:  { married: false }
-    )
+    Person = Contracts::Value.new(name: String, age: Nat, married: Boolean)
+                             .default(married: false)
+                             .create
+
+    p = Person.new(name: 'John', age: 37)
+    p.name
+    p.age
+    p.married
+    p.married?   # Auto-created because Boolean type
+
+    p.values(:name, :married)   # -> ['John', false]
+    p.values()                  # -> ['John', 37, false]

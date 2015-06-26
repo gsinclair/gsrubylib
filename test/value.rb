@@ -89,6 +89,12 @@ D "GS::Value" do
   end
 
   D "Doesn't allow specification where default value fails contract" do
+    E(ArgumentError) {
+      Person = GS::Value.new(name: String, age: Nat, married: Bool)
+                        .default(name: 56)
+                        .create
+    }
+    Mt Whitestone.exception.message, /violates contract/
   end
 
 end

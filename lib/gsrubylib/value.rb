@@ -35,7 +35,13 @@ class GS
     def default(args)
       check_attributes_are_legit(args.keys)
       args.each do |attr_name, default_value|
-        @attributes[attr_name].default = default_value
+        contract = @attributes[attr_name].type
+        if Contract.valid?(default_value, contract)
+          @attributes[attr_name].default = default_value
+        else
+          raise ArgumentError,
+            "Value: default value for '#{attr_name}' violates contract #{contract}"
+        end
       end
       self
     end
