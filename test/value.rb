@@ -4,39 +4,36 @@ D "GS::Value" do
   D "(Internal test) Creates correct attribute table" do
     D "For :ALL required fields" do
       table  = GS::Value.new(name: String, age: Nat, married: Bool)
-                        .required(:ALL)
                         .default(married: false)
                         .attribute_table_for_testing
       Eq table.size, 3
       no_default = GS::Value::NO_DEFAULT
-      Eq table[:name],    GS::Value::Attribute.new(:name, String, true, no_default)
-      Eq table[:age],     GS::Value::Attribute.new(:age, Nat, true, no_default)
-      Eq table[:married], GS::Value::Attribute.new(:married, Bool, true, false)
+      Eq table[:name],    GS::Value::Attribute.new(:name, String, no_default)
+      Eq table[:age],     GS::Value::Attribute.new(:age, Nat, no_default)
+      Eq table[:married], GS::Value::Attribute.new(:married, Bool, false)
     end
     D "For specified required fields" do
       table  = GS::Value.new(name: String, age: Nat, married: Bool)
-                        .required(:name, :married)
                         .default(name: "John", age: 37)
                         .attribute_table_for_testing
       Eq table.size, 3
       no_default = GS::Value::NO_DEFAULT
-      Eq table[:name],    GS::Value::Attribute.new(:name, String, true, "John")
-      Eq table[:age],     GS::Value::Attribute.new(:age, Nat, false, 37)
-      Eq table[:married], GS::Value::Attribute.new(:married, Bool, true, no_default)
+      Eq table[:name],    GS::Value::Attribute.new(:name, String, "John")
+      Eq table[:age],     GS::Value::Attribute.new(:age, Nat, 37)
+      Eq table[:married], GS::Value::Attribute.new(:married, Bool, no_default)
     end
   end
 
   D "Can be created and used" do
     Person = GS::Value.new(name: String, age: Nat, married: Bool)
-                      .required(:ALL)
                       .default(married: false)
                       .create
     D "With everything specified" do
-      p = Person.new(name: 'John', age: 19, married: false)
+      p = Person.new(name: 'John', age: 19, married: true)
       Eq p.name,     'John'
       Eq p.age,      19
-      Eq p.married,  false
-      Eq p.married?, false
+      Eq p.married,  true
+      Eq p.married?, true
     end
     D "With a default value left unspecified" do
       p = Person.new(name: 'John', age: 19)
@@ -49,7 +46,6 @@ D "GS::Value" do
 
   D "Barfs on incomplete data" do
     Person = GS::Value.new(name: String, age: Nat, married: Bool)
-                      .required(:name)
                       .default(age: 40)
                       .create
     p = nil
@@ -61,10 +57,7 @@ D "GS::Value" do
   end
 
   D "Barfs on data not satisfying the contract" do
-    Person = GS::Value.new(name: String, age: Nat, married: Bool)
-                      .required(:name)
-                      .default(age: 40)
-                      .create
+    Person = GS::Value.new(name: String, age: Nat, married: Bool).create
     E(ArgumentError) { Person.new(name: [4,5,6], age: 50, married: false) }
     E(ArgumentError) { Person.new(name: 'Owen', age: -2, married: true) }
     E(ArgumentError) { Person.new(name: 'Jane', age: 5, married: nil) }

@@ -2,9 +2,8 @@
 #
 # Class:       GS::Value
 # Description: Allows the creation of value objects (read-only structs) with
-#              nice features like type checking, predicate methods, required
-#              fields and default values. Oh, and creating a new object from an
-#              old one.
+#              nice features like type checking, predicate methods, and default
+#              values. Oh, and creating a new object from an old one.
 
 require 'gsrubylib'
 require 'ap'
@@ -13,41 +12,23 @@ class GS
 
   # Example:
   #   Person = GS::Value.new(name: String, age: Nat, married: Bool)
-  #                     .required(:ALL)
   #                     .default(married: false)
   #                     .create
   class Value
-    class Attribute < Struct.new(:name, :type, :required, :default)
+    class Attribute < Struct.new(:name, :type, :default)
     end
     NO_DEFAULT = Object.new.freeze
 
     # The attribute table, @attributes, looks like this when fully populated:
-    #   { name: Attribute(:name,    String,  true,  NO_DEFAULT),
-    #     age:  Attribute(:age,     Nat,     true,  NO_DEFAULT),
-    #     age:  Attribute(:married, Bool,    true,  false) }
+    #   { name: Attribute(:name,    String,  NO_DEFAULT),
+    #     age:  Attribute(:age,     Nat,     NO_DEFAULT),
+    #     age:  Attribute(:married, Bool,    false) }
     Contract HashOf[Symbol, Any] => Any
     def initialize(args)
       @attributes = {}
       args.each do |attr_name, type|
-        @attributes[attr_name] = Attribute.new(attr_name, type, false, NO_DEFAULT)
+        @attributes[attr_name] = Attribute.new(attr_name, type, NO_DEFAULT)
       end
-    end
-
-    Contract Args[Symbol] => Value
-    def required(*args)
-      attributes_to_update =
-        if args.empty?
-          []
-        elsif args == [:ALL]
-          @attributes.values
-        else
-          check_attributes_are_legit(args)
-          @attributes.values.select { |a| a.name.in? args }
-        end
-      attributes_to_update.each do |a|
-        a.required = true
-      end
-      self
     end
 
     Contract HashOf[Symbol, Any] => Value
@@ -114,10 +95,6 @@ class GS
             value_given = (data.key? name)
             if not value_given and attribute.default != NO_DEFAULT
               data[name] = attribute.default
-            end
-            value_given = (data.key? name)
-            if not value_given and attribute.required
-              raise ArgumentError, "Required attribute '#{attribute.name}' not given"
             end
             unless Contract.valid?(data[name], attribute.type)
               message = StringIO.string { |o|
