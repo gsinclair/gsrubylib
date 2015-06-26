@@ -10,7 +10,6 @@ include Contracts
 # the top-level namespace.
 #  * GS::Basic        (defines methods in core classes; don't use this directly)
 #  * GS::Label        (create type-safe labels)
-#  * GS::TypeExpect   (not programmed yet)
 #  * GS::ErrorHelper  (not programmed or properly considered yet)
 class GS
 end
@@ -30,8 +29,6 @@ require 'gsrubylib/basic'
   #   Class
   #     attr_predicate  attr_predicate_rw
 
-require 'debuglog'
-
 # Useful method to remind me of the methods I have available.
 def GS.added_methods
   debug "gsrubylib added methods:"
@@ -43,15 +40,11 @@ end
 __END__
 
 
-  type expectation stuff, in gsrubylib/type_expectations
-
   Maybe a colourful exception printer
     i.e. catch all exceptions and print the error and stacktrace colorfully
 
   I think my SuckerHelper module can be partially extracted as a general helper
   with useful error messages etc.  ErrorHelper might be a good name.
-
-  attr_predicate :foo    provides foo= and foo?
 
 Be safe in modifying classes, like I was in the Extensions project. Check
 whether a method exists before defining it. And consider being sensitive to Ruby
@@ -98,17 +91,3 @@ Improvements to debuglog:
  * DebugLog.help to print a help message to the log file
  * verbose mode to include stacktrace information
  * ensure the first line of the log file identifies the 'debuglog' gem
-
-Type-checking, like
-  def foo(name, age, hobbies)
-    expect name => String, age => Integer, hobbies => ArrayOf(String)
-
-Error message, for instance:
-  Type error in foo(blahblah.rb:165): expected type ArrayOf(String)
-
-More information could be provided in debug.log.
- 
-Enabled via
-  import GS::TypeExpect
-
-I wrote more about this in NV.
