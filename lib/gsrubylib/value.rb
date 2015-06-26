@@ -137,7 +137,8 @@ class GS
       attributes = @attributes
       c.class_eval do
         define_method(:to_s) do
-          self.class.name + ": (data to be added)"
+          string = @data.map { |k,v| "#{k}: #{v.inspect}" }.join(', ')
+          "#{self.class.name}(#{string})"
         end
         define_method(:inspect) do
           self.to_s

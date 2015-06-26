@@ -81,6 +81,11 @@ D "GS::Value" do
   end
 
   D "to_s, inspect, to_hash" do
+    Person = GS::Value.new(name: String, age: Nat, married: Bool).create
+    p = Person.new(name: 'John', age: 50, married: false)
+    Eq p.to_s, %{Person(name: "John", age: 50, married: false)}
+    Eq p.inspect, p.to_s
+    Eq p.to_hash, { name: 'John', age: 50, married: false }
   end
 
   D "Doesn't allow specification where default value fails contract" do
