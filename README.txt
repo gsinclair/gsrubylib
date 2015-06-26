@@ -56,3 +56,16 @@ Planned: Value objects that can be used with Contracts.
 
     p.values(:name, :married)   # -> ['John', false]
     p.values()                  # -> ['John', 37, false]
+
+    p.with(age: 38)
+
+    p[:age]
+    p[:salary]                  # error
+
+    Person[name: String, age: Nat]
+    Person.info                 # -> "Person[name: String, age: Nat]"
+
+    # Speculative, but nice idea:
+    p.upgrade(Employee, salary: 10_000)
+                                # -> Employee(name: 'John', age: 37, salary: 10_000)
+                                # (Assuming Employee value class has been defined)

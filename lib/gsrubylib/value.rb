@@ -137,6 +137,19 @@ class GS
     end
 
     def make_with_method(c)
+      attributes = @attributes
+      c.class_eval do
+        define_method(:with) do |data|
+          unless Contract.valid?(data, HashOf[Symbol,Any])
+            raise ArgumentError, "Value: invalid argument to 'with'"
+          end
+          if x = data.keys.find { |a| not attributes.key?(a) }
+            raise ArgumentError, "#{self.class.name}: attribute '#{x}' not defined"
+          end
+          new_data = @data.merge(data)
+          self.class.new(new_data)
+        end
+      end
     end
 
     def make_other_methods(c)

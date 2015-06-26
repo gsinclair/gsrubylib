@@ -88,6 +88,22 @@ D "GS::Value" do
     Eq p.to_hash, { name: 'John', age: 50, married: false }
   end
 
+  D "Can create new value from old (with modifications)" do
+    Person = GS::Value.new(name: String, age: Nat, married: Bool).create
+    p = Person.new(name: 'John', age: 50, married: false)
+    Eq p.name, 'John'
+    Eq p.age,  50
+    F  p.married?
+    p = p.with(age: 51, married: true)
+    Eq p.name, 'John'
+    Eq p.age,  51
+    T  p.married?
+    D "Fails if incorrect key is applied" do
+      E(ArgumentError) { p.with(salary: 10_000) }
+      Mt Whitestone.exception.message, /attribute '.*?' not defined/
+    end
+  end
+
   D "Doesn't allow specification where default value fails contract" do
     E(ArgumentError) {
       Person = GS::Value.new(name: String, age: Nat, married: Bool)
