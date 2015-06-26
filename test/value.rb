@@ -34,6 +34,7 @@ D "GS::Value" do
       Eq p.age,      19
       Eq p.married,  true
       Eq p.married?, true
+      E(NoMethodError) { p.age? }
     end
     D "With a default value left unspecified" do
       p = Person.new(name: 'John', age: 19)
@@ -41,6 +42,13 @@ D "GS::Value" do
       Eq p.age,      19
       Eq p.married,  false
       Eq p.married?, false
+    end
+    D "Hash-like access to data" do
+      p = Person.new(name: 'John', age: 19)
+      Eq p[:name],     'John'
+      Eq p[:age],      19
+      Eq p[:married],  false
+      Eq p[:married?], false
     end
   end
 

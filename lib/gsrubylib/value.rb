@@ -134,6 +134,21 @@ class GS
           end
         end
       end
+      # Now the [] method (hash-like access to data).
+      c.class_eval do
+        def [](field)
+          if field.to_s.end_with? '?'
+            if self.respond_to? field
+              field = field.to_s[0..-2].to_sym
+            end
+          end
+          if @data.key? field
+            @data[field]
+          else
+            raise ArgumentError, "Value: invalid field '#{field}'"
+          end
+        end
+      end
     end
 
     def make_with_method(c)
