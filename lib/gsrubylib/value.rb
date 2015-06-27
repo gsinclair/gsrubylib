@@ -18,6 +18,7 @@ class GS
     class Attribute < Struct.new(:name, :type, :default)
     end
     NO_DEFAULT = Object.new.freeze
+    class ValueObjectBase; end            # Defined later.
 
     # The attribute table, @attributes, looks like this when fully populated:
     #   { name: Attribute(:name,    String,  NO_DEFAULT),
@@ -48,28 +49,33 @@ class GS
 
     Contract None => Class
     def create()
-      # How to do this?
-      # Create the class object, then call define_method and define_class_method
-      # on it to create the methods:
-      #  - initialize
+      # We return an anonymous class that extends ValueObjectBase.
+      # Methods we define:
+      #  - ._attr_names_   (easy access to the names)
+      #  - ._attr_table_   (the full metadata)
+      #  - #initialize (sets @data)
       #    * this needs to raise an error if
       #      * an input doesn't satisfy the contract for that attribute
       #      * a required attribute is missing
-      #  - each of the attribute methods
-      #    - predicate method instead where appropriate
-      #  - with (copy constructor)
-      #  - to_s
-      #  - inspect
-      #  - hash
-      #  - ==
-      c = Class.new
-      c.const_set(:ATTR_NAMES, @attributes.keys)
+      #      (Hopefully ValueObjectBase can support this with a ._validate_data_
+      #       method.)
+      #  - #each of the attribute methods
+      #    - predicate methods in addition where appropriate
+      #
+      # ValueObjectBase handles all the other parts, making use of _attr_names_,
+      # _attr_table_ and @data where needed:
+      #     []                          p[:name]
+      #     attributes
+      #     values
+      #     with                        p.with(age: 57)
+      #     to_s, inspect
+      #     hash, eql?, ==
+      #     to_hash
+      #
+      c = Class.new(ValueObjectBase)
+      make_metadata_methods(c)
       make_initialize(c)
       make_attribute_methods(c)
-      make_attributes_and_values_methods(c)
-      make_with_method(c)
-      make_helper_methods(c)
-      make_other_methods(c)
       c
     end
 
@@ -85,39 +91,29 @@ class GS
       end
     end
 
-    def make_initialize(c)
+    def make_metadata_methods(c)
       attributes = @attributes
+      c.define_singleton_method(:_attr_names_) { attributes.keys }
+      c.define_singleton_method(:_attr_table_) { attributes }
+    end
+
+    def make_initialize(c)
       c.class_eval do
-        # Initialize takes a hash of field=>value pairs.
-        define_method(:initialize) do |data|
-          unless Contract.valid?(data, Hash[Symbol,Any])
-            raise ArgumentError, "Invalid arguments; need field=>value hash"
-          end
-          # Now validate it.
-          dodgy_fields = data.keys - attributes.keys
-          unless dodgy_fields.empty?
-            raise ArgumentError, "Invalid fields: #{dodgy_fields.join(', ')}"
-          end
-          attributes.values.each do |attribute|
-            name = attribute.name
-            value_given = (data.key? name)
-            if not value_given and attribute.default != NO_DEFAULT
-              data[name] = attribute.default
-            end
-            unless Contract.valid?(data[name], attribute.type)
-              message = StringIO.string { |o|
-                o.puts "Value for attribute '#{name}' fails its contract"
-                o.puts "  Contract: #{attribute.type}"
-                o.puts "     Value: #{data[name].inspect}"
-              }
-              raise ArgumentError, message
-            end
-          end
-          # Now that the data has been validated, save it for later.
-          @data = data.freeze
+        class << self
+          public :new
         end
-      end  # class_eval
-    end  # make_initialize
+
+        # Initialize takes a hash of field=>value pairs.
+        # We get ValueObjectBase to do all the work.
+        define_method(:initialize) do |data|
+          begin
+            validate_and_store_data(data)
+          rescue ArgumentError => e
+            raise ArgumentError, e.message
+          end
+        end
+      end
+    end
 
     def make_attribute_methods(c)
       @attributes.each_value do |attribute|
@@ -136,109 +132,119 @@ class GS
           end
         end
       end
-      # Now the [] method (hash-like access to data).
-      c.class_eval do
-        define_method(:[]) do |key|
-          key = validate_and_remove_question_mark(key)
-          @data[key]
-        end
-      end
     end
 
-    def make_attributes_and_values_methods(c)
-      attributes = @attributes
-      c.class_eval do
-        define_method(:attributes) do
-          attributes.keys
-        end
-      end
-      c.class_eval do
-        define_method(:values) do |*keys|
-          if keys.empty?
-            @data.values
-          else
-            keys = validate_and_remove_question_marks(keys)
-            @data.values_at(*keys)
-          end
-        end
-      end
-    end
+    # =======================
 
-    def make_with_method(c)
-      attributes = @attributes
-      c.class_eval do
-        define_method(:with) do |data|
-          unless Contract.valid?(data, HashOf[Symbol,Any])
-            raise ArgumentError, "Value: invalid argument to 'with'"
+    class ValueObjectBase
+      # When a subclass is created, it will have class methods _attr_names_ and
+      # _attr_table_.
+      # When an object is created, its initialize will call validate_and_store_data(),
+      # implemented below, which sets @data for other methods to use.
+      # Summary: the methods below are free to use:
+      #  * class methods _attr_names_ and _attr_table_
+      #  * instance method @data
+
+      # ++++ ValueObjectBase plumbing
+
+      class << self
+        private :new
+      end
+
+      def validate_and_store_data(data)
+        unless Contract.valid?(data, Hash[Symbol,Any])
+          raise ArgumentError, "Value: invalid arguments; need field=>value hash"
+        end
+        # Now validate it.
+        dodgy_fields = data.keys - self.attributes
+        unless dodgy_fields.empty?
+          raise ArgumentError, "Value: invalid field(s): #{dodgy_fields.join(', ')}"
+        end
+        self.class._attr_table_.values.each do |attribute|
+          name = attribute.name
+          value_given = (data.key? name)
+          if not value_given and attribute.default != GS::Value::NO_DEFAULT
+            data[name] = attribute.default
           end
-          if x = data.keys.find { |a| not attributes.key?(a) }
-            raise ArgumentError, "#{self.class.name}: attribute '#{x}' not defined"
+          unless Contract.valid?(data[name], attribute.type)
+            message = StringIO.string { |o|
+              o.puts "Value for attribute '#{name}' fails its contract"
+              o.puts "  Contract: #{attribute.type}"
+              o.puts "     Value: #{data[name].inspect}"
+            }
+            raise ArgumentError, message
           end
-          new_data = @data.merge(data)
+        end
+        # Now that the data has been validated, save it for later.
+        @data = data.freeze
+      end
+      protected :validate_and_store_data
+
+      def _key_lookup_(key)
+        # Translation table, allowing for idiomatic predicate lookups:
+        #   :name       ->    :name
+        #   :age        ->    :age
+        #   :married    ->    :married
+        #   :married?   ->    :married
+        @table ||= (
+          h = {}
+          attributes.each do |attr_name|
+            h[attr_name] = attr_name
+            if self.class._attr_table_[attr_name].type == Bool
+              h[(attr_name.to_s + '?').intern] = attr_name
+            end
+          end
+          h
+        )
+        @table.fetch(key)
+      rescue KeyError
+        raise ArgumentError, "Value: invalid field '#{key}'"
+      end
+
+      # ---- ValueObjectBase plumbing over. Now the "real" methods.
+
+      def [](key)
+        key = _key_lookup_(key)
+        @data[key]
+      end
+
+      def attributes
+        self.class._attr_names_
+      end
+
+      def values(*keys)
+        if keys.empty?
+          @data.values
+        else
+          keys = keys.map { |k| _key_lookup_(k) }
+          @data.values_at(*keys)
+        end
+      end
+
+      def with(new_data)
+        unless Contract.valid?(new_data, HashOf[Symbol,Any])
+          raise ArgumentError, "Value: invalid argument to 'with'"
+        end
+        begin
+          new_data = @data.merge(new_data)
           self.class.new(new_data)
+        rescue ArgumentError => e
+          raise ArgumentError, e.message
         end
       end
-    end
 
-
-    def make_helper_methods(c)
-      c.class_eval do
-        # If we have :name and :married (<- predicate) then...
-        #     :name       -> :name
-        #     :married    -> :married
-        #     :married?   -> :married
-        #     :salary     -> Error: invalid field 'salary'
-        #     :name?      -> Error: invalid field 'name?'
-        def validate_and_remove_question_mark(key)
-          attr_names = self.attributes
-          if attr_names.include? key
-            return key
-          else
-            key = key.to_s
-            if key.end_with? '?'
-              key = key[0..-2].to_sym
-            end
-            if attr_names.include? key
-              return key
-            end
-          end
-          # If we get this far, the key is invalid.
-          raise ArgumentError, "Value: invalid field '#{key}'"
-        end
-
-        def validate_and_remove_question_marks(keys)
-          keys.map { |k| validate_and_remove_question_mark(k) }
-        end
-
-        private :validate_and_remove_question_mark
-        private :validate_and_remove_question_marks
+      def to_s
+        string = @data.map { |k,v| "#{k}: #{v.inspect}" }.join(', ')
+        "#{self.class.name}(#{string})"
       end
-    end
+      def inspect() to_s end
+      def hash() self.to_hash.hash end
+      def eql?(other) self.class == other.class and self.to_hash == other.to_hash end
+      def ==(other) self.class == other.class and self.to_hash == other.to_hash end
+      def to_hash() @data end
+    end  # class ValueObjectBase
 
-    def make_other_methods(c)
-      attributes = @attributes
-      c.class_eval do
-        define_method(:to_s) do
-          string = @data.map { |k,v| "#{k}: #{v.inspect}" }.join(', ')
-          "#{self.class.name}(#{string})"
-        end
-        define_method(:inspect) do
-          self.to_s
-        end
-        define_method(:to_hash) do
-          @data
-        end
-        define_method(:eql?) do |other|
-          self.class == other.class and self.to_hash == other.to_hash
-        end
-        define_method(:==) do |other|
-          self.class == other.class and self.to_hash == other.to_hash
-        end
-        define_method(:hash) do
-          self.to_hash.hash
-        end
-      end
-    end
+    # =======================
 
   end  # class Value
 end  # class GS

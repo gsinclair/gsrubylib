@@ -125,7 +125,7 @@ D "GS::Value" do
     T  p.married?
     D "Fails if incorrect key is applied" do
       E(ArgumentError) { p.with(salary: 10_000) }
-      Mt Whitestone.exception.message, /attribute '.*?' not defined/
+      Mt Whitestone.exception.message, /invalid field/
     end
   end
 
