@@ -237,6 +237,12 @@ class GS
         klass.new(@data.merge(extra_data))
       end
 
+      def downgrade(klass)
+        required_attributes = klass._attr_names_
+        data = @data.select { |k,v| required_attributes.include? k }
+        klass.new(data)
+      end
+
       def to_s
         string = @data.map { |k,v| "#{k}: #{v.inspect}" }.join(', ')
         "#{self.class.name}(#{string})"

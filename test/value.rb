@@ -168,6 +168,23 @@ D "GS::Value" do
     end
   end
 
+  D "Can downgrade to a new value object" do
+    Person   = GS::Value.new(name: String, age: Nat).create
+    Employee = GS::Value.new(name: String, age: Nat, title: Maybe[String], salary: Nat)
+                        .create
+    e = Employee.new(name: 'Ally', age: 19, title: 'Student', salary: 15000)
+    p = e.downgrade(Person)
+    Ko p, Person
+    Eq p.name,   'Ally'
+    Eq p.age,    19
+
+    D "Fails when class is incompatible" do
+      Sausage = GS::Value.new(skin: Symbol, filling: Symbol).create
+      e = Employee.new(name: 'Ally', age: 19, title: 'Student', salary: 15000)
+      E(ArgumentError) { e.downgrade(Sausage) }
+    end
+  end
+
   D "Doesn't allow specification where default value fails contract" do
     E(ArgumentError) {
       Person = GS::Value.new(name: String, age: Nat, married: Bool)
