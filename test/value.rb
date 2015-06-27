@@ -50,6 +50,18 @@ D "GS::Value" do
       Eq p[:married],  false
       Eq p[:married?], false
     end
+    D "Access to #attributes and #values" do
+      p = Person.new(name: 'John', age: 19, married: true)
+      Eq p.attributes, [:name, :age, :married]
+      Eq p.values, ['John', 19, true]
+      Eq p.values(:name), ['John']
+      Eq p.values(:name, :age), ['John', 19]
+      Eq p.values(:name, :age, :married), ['John', 19, true]
+      Eq p.values(:name, :age, :married?), ['John', 19, true]
+      Eq p.values(:married, :age), [true, 19]
+      E(ArgumentError) { p.values(:level_of_enthusiasm) }
+      E(ArgumentError) { p.values(:attributes) }
+    end
   end
 
   D "Barfs on incomplete data" do
@@ -62,6 +74,11 @@ D "GS::Value" do
     E!(ArgumentError) { p = Person.new(name: 'Anne', age: 21, married: false) }
     E!(ArgumentError) { p = Person.new(name: 'Anne', married: true) }
     T p.married?
+  end
+
+  D "Barfs on invalid data" do
+    Person = GS::Value.new(name: String, age: Nat, married: Bool).create
+    E(ArgumentError) { Person.new(name: 'Alan', age: 5, married: false, x: 57) }
   end
 
   D "Barfs on data not satisfying the contract" do

@@ -66,7 +66,9 @@ class GS
       c.const_set(:ATTR_NAMES, @attributes.keys)
       make_initialize(c)
       make_attribute_methods(c)
+      make_attributes_and_values_methods(c)
       make_with_method(c)
+      make_helper_methods(c)
       make_other_methods(c)
       c
     end
@@ -136,16 +138,27 @@ class GS
       end
       # Now the [] method (hash-like access to data).
       c.class_eval do
-        def [](field)
-          if field.to_s.end_with? '?'
-            if self.respond_to? field
-              field = field.to_s[0..-2].to_sym
-            end
-          end
-          if @data.key? field
-            @data[field]
+        define_method(:[]) do |key|
+          key = validate_and_remove_question_mark(key)
+          @data[key]
+        end
+      end
+    end
+
+    def make_attributes_and_values_methods(c)
+      attributes = @attributes
+      c.class_eval do
+        define_method(:attributes) do
+          attributes.keys
+        end
+      end
+      c.class_eval do
+        define_method(:values) do |*keys|
+          if keys.empty?
+            @data.values
           else
-            raise ArgumentError, "Value: invalid field '#{field}'"
+            keys = validate_and_remove_question_marks(keys)
+            @data.values_at(*keys)
           end
         end
       end
@@ -164,6 +177,41 @@ class GS
           new_data = @data.merge(data)
           self.class.new(new_data)
         end
+      end
+    end
+
+
+    def make_helper_methods(c)
+      c.class_eval do
+        # If we have :name and :married (<- predicate) then...
+        #     :name       -> :name
+        #     :married    -> :married
+        #     :married?   -> :married
+        #     :salary     -> Error: invalid field 'salary'
+        #     :name?      -> Error: invalid field 'name?'
+        def validate_and_remove_question_mark(key)
+          attr_names = self.attributes
+          if attr_names.include? key
+            return key
+          else
+            key = key.to_s
+            if key.end_with? '?'
+              key = key[0..-2].to_sym
+            end
+            if attr_names.include? key
+              return key
+            end
+          end
+          # If we get this far, the key is invalid.
+          raise ArgumentError, "Value: invalid field '#{key}'"
+        end
+
+        def validate_and_remove_question_marks(keys)
+          keys.map { |k| validate_and_remove_question_mark(k) }
+        end
+
+        private :validate_and_remove_question_mark
+        private :validate_and_remove_question_marks
       end
     end
 
