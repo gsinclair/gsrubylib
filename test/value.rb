@@ -138,6 +138,36 @@ D "GS::Value" do
     end
   end
 
+  D "Can upgrade to a new value object" do
+    Person   = GS::Value.new(name: String, age: Nat).create
+    Employee = GS::Value.new(name: String, age: Nat, title: Maybe[String], salary: Nat)
+                        .create
+    # Test 1
+    p = Person.new(name: 'Ally', age: 19)
+    e = p.upgrade(Employee, title: 'Student', salary: 15000)
+    Ko e, Employee
+    Eq e.name,   'Ally'
+    Eq e.age,    19
+    Eq e.title,  'Student'
+    Eq e.salary, 15000
+    # Test 2
+    e = p.upgrade(Employee, salary: 98100)
+    Eq e.name,   'Ally'
+    Eq e.age,    19
+    N  e.title
+    Eq e.salary, 98100
+
+    D "Fails if incorrect additional data provided" do
+      p = Person.new(name: 'Jann', age: 28)
+      E(ArgumentError) {
+        e = p.upgrade(Employee, title: 'Nurse', salary: 58576, time_served: 4)
+      }
+      E(ArgumentError) {
+        e = p.upgrade(Employee, title: 'Nurse', salary: 'High')
+      }
+    end
+  end
+
   D "Doesn't allow specification where default value fails contract" do
     E(ArgumentError) {
       Person = GS::Value.new(name: String, age: Nat, married: Bool)

@@ -233,6 +233,10 @@ class GS
         end
       end
 
+      def upgrade(klass, extra_data)
+        klass.new(@data.merge(extra_data))
+      end
+
       def to_s
         string = @data.map { |k,v| "#{k}: #{v.inspect}" }.join(', ')
         "#{self.class.name}(#{string})"
