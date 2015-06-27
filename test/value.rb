@@ -43,6 +43,15 @@ D "GS::Value" do
       Eq p.married,  false
       Eq p.married?, false
     end
+    D "With a maybe-nil (i.e. optional) field" do
+      X = GS::Value.new(a: Integer, b: Maybe[String]).create
+      E! { X.new(a: 6, b: "foo") }
+      E! { X.new(a: 6, b: nil) }
+      E! { X.new(a: 6) }
+      x = X.new(a: 6)
+      Eq x.a, 6
+      Eq x.b, nil
+    end
     D "Hash-like access to data" do
       p = Person.new(name: 'John', age: 19)
       Eq p[:name],     'John'
