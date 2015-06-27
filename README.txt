@@ -9,29 +9,30 @@ itself:
     o.define_method(:add) do |x,y| x + y end
 
     squares = (1..10).build_hash { |n| [n, n*n] }        # Alias: graph
-    squares.values.mapf(:to_s) collectf                  # Alias: collectf
+    squares.values.mapf(:to_s)                           # Alias: collectf
     h = squares.apply_keys { |k| k.to_s }
     h = squares.apply_values { |k| k.to_s }
 
-    “foo”.indent(4)
-    “bar”.tabto(4)
+    "foo".indent(4)
+    "bar".tabto(4)
     USAGE = %{
       | usage: prog [-o dir] -h file...
       | where
       | -o dir outputs to DIR
       | -h prints this message
     }.trim("|")
-    StringIO.string { |o| o.puts “Hi…” }
+    StringIO.string { |o| o.puts "Hi!" }
 
     class Person
       attr_predicate :young
       attr_predicate_rw :successful
     end
 
-It also loads 'pry' and 'debuglog' so I don't have to. Set $gs_nopry and
-$gs_nodebuglog if these are not wanted.
+It also loads 'pry' and 'debuglog' and 'contracts' so I don't have to. Set
+$gs_nopry and $gs_nodebuglog if those two are not wanted.
 
-Next up is Labels.
+
+*** LABELS ***
 
     Result = GS::Label.create(:win, :lose, :draw)
     # ...
@@ -42,30 +43,38 @@ Next up is Labels.
     ...
     end
 
-Planned: Value objects that can be used with Contracts.
 
-    Person = Contracts::Value.new(name: String, age: Nat, married: Boolean)
-                             .default(married: false)
-                             .create
+*** VALUE OBJECTS (with Contracts validation) ***
+
+These are read-only structs with type safety, predicate methods, copy constructors
+and other conveniences.
+
+    Person = GS::Value.new(name: String, age: Nat, married: Bool)
+                      .default(married: false)
+                      .create
 
     p = Person.new(name: 'John', age: 37)
     p.name
     p.age
     p.married
-    p.married?   # Auto-created because Boolean type
+    p.married?                  # Auto-created because Bool type
 
+    p.attributes                # -> [:name, :age, :married]
     p.values(:name, :married)   # -> ['John', false]
     p.values()                  # -> ['John', 37, false]
 
-    p.with(age: 38)
+    p = p.with(age: 38)         # Create new object based on old one
 
-    p[:age]
+    p[:age]                     # 38
     p[:salary]                  # error
 
-    Person[name: String, age: Nat]
-    Person.info                 # -> "Person[name: String, age: Nat]"
-
-    # Speculative, but nice idea:
-    p.upgrade(Employee, salary: 10_000)
+    e = p.upgrade(Employee, salary: 10_000)
                                 # -> Employee(name: 'John', age: 37, salary: 10_000)
                                 # (Assuming Employee value class has been defined)
+
+    p = e.downgrade(Person)     # Back where we started
+
+    # Planned...
+    Person[name: 'John', age: 37]
+    Person.info                 # -> "Person[name: String, age: Nat]"
+
