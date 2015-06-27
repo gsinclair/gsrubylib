@@ -1,0 +1,39 @@
+Person = GS::Value.new(name: String, age: Nat, married: Bool)
+
+%{
+  What does this do?
+   * Processes the input into an attributes table.
+   * Create anonymous class that extends ValueObjectBase and:
+     * Class methods _attr_table_ and _attr_names_
+     * Method initialize(data) that calls _validate_and_store_data_ which
+       defines @data = ...
+     * Methods name(), age(), married(), married?()
+   * Return this class.
+
+  So, in effect, Person < ValueObjectBase.
+
+  All of the other methods I've defined are handled by object_base. They can
+  access _attr_table_ and _attr_names_ to know the names and metadata of the
+  attributes. They can access @data to get the object data { name: 'Steve', ... }.
+
+  Those methods are:
+    []                          p[:name]
+    attributes
+    values
+    with                        p.with(age: 57)
+    to_s, inspect
+    hash, eql?, ==
+    to_hash
+
+  I could then add:
+    #upgrade
+    #downgrade
+    .info                       Person.info   to get debugging info incl contracts
+    .[]                         Person[name: 'Anne', ...]
+}
+
+class ValueObjectBase
+  class << self
+    private :new
+  end
+end
