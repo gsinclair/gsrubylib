@@ -195,6 +195,21 @@ D "GS::Value" do
     end
   end
 
+  D "Can get an info string including contracts" do
+    Employee = GS::Value.new(name: String, age: Nat, title: Maybe[String], salary: Nat)
+                        .default(salary: 10000)
+                        .create
+    Eq Employee.info(:short),
+      %{Employee[name: String, age: Nat, title: String or nil, salary: Nat (10000)]}
+    Eq Employee.info(:long), %{
+      | Employee[name: String,
+      |          age: Nat,
+      |          title: String or nil,
+      |          salary: Nat (def. 10000)]
+    }.trim('|').chomp
+    Eq Employee.info, Employee.info(:long)
+  end
+
   D "Doesn't allow specification where default value fails contract" do
     E(ArgumentError) {
       Person = GS::Value.new(name: String, age: Nat, married: Bool)

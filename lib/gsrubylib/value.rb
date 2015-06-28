@@ -260,6 +260,56 @@ class GS
       def eql?(other) self.class == other.class and self.to_hash == other.to_hash end
       def ==(other) self.class == other.class and self.to_hash == other.to_hash end
       def to_hash() @data end
+
+      # Person.info -> "Person[name: String, age: Nat]"
+      class << self
+        def info(mode=:long)
+          name       = self.name
+          attributes = self._attr_table_.values
+          if mode == :short
+            info_short(name, attributes)
+          else
+            info_long(name, attributes)
+          end
+        end
+
+        def info_short(name, attributes)
+          content = attributes.map { |a|
+            name_str, type_str, default_str = preprocess_content(a)
+            unless default_str.empty?
+              default_str = " (#{default_str})"
+            end
+            "#{name_str}: #{type_str}#{default_str}"
+          }.join(', ')
+          classname = self.name
+          "#{classname}[#{content}]"
+        end
+
+        def info_long(name, attributes)
+          content = attributes.map { |a|
+            name_str, type_str, default_str = preprocess_content(a)
+            unless default_str.empty?
+              default_str = " (def. #{default_str})"
+            end
+            "#{name_str}: #{type_str}#{default_str}"
+          }.join(",\n")
+          lines = content.split("\n")
+          classname = self.name
+          line1  = "#{classname}[#{lines.shift}\n"
+          spaces = " " * (classname.length+1)
+          rest   = lines.map { |line| spaces + line }.join("\n")
+          final_result = line1 + rest + ']'
+        end
+
+        Contract Attribute => [String, String, String]
+        def preprocess_content(a)
+          type_str = a.type.to_s.gsub(/Contracts::/, '')
+          default_str =
+            if a.default? then a.default.to_s else "" end
+          [a.name.to_s, type_str, default_str]
+        end
+      end
+
     end  # class ValueObjectBase
 
     # =======================
