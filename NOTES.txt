@@ -1,0 +1,60 @@
+* 28 Jun 2015 * Possible next features *
+
+(1)
+
+Creating a value object and adding methods to it at the same time.
+
+  Person = Value.new(name: String, age: Nat).create do
+    def year_of_birth
+      Date.year - age
+    end
+  end
+
+That should be as simple as passing the block to class_eval or class_exec; not
+sure which.
+
+-- (2) Avoiding the 'create' method.
+
+It's awkward and would be easy to forget.
+
+  Person = Value.new(name: String, age: Nat) do
+    ...
+  end
+
+That's easy enough. What about default values?
+
+  Person = Value.new(name: String, age: Nat).default(age: 30) do
+    ...
+  end
+
+Even that's easy enough, I suppose.
+
+Is there another way of supplying the defaults?
+
+  Person = Value.new(name: String, age: Nat) do
+    default age: 30
+    ...
+  end
+
+Is that possible? It is easy? Is it elegant?
+
+The Person class would need to be given a 'default' singleton method. I suppose
+this doesn't need to do anything different from the current 'default' method on
+Value. Both have access to the attribute table. I feel funny about modifying
+the table after the class is creaetd, but I suppose it will have to do.
+
+It's helpful to consider that the Person class is not actually created until
+the 'end' is reached. But then, it's only then that the 'default' method will
+be executed.
+
+-- (3) Allowing creation by providing values only.
+
+  p1 = Person[name: 'Hank', age: 45]
+  p2 = Person['Hank', 45]
+
+It's probably better to use named arguments most of the time, but for value
+objects that have only two attributes, which are obvious, and the order is
+obvious, I think positional creation is acceptable.
+
+
+
