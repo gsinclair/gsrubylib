@@ -16,6 +16,9 @@ class GS
   #                     .create
   class Value
     class Attribute < Struct.new(:name, :type, :default)
+      def default?
+        self.default != NO_DEFAULT
+      end
     end
     NO_DEFAULT = Object.new.freeze
     class ValueObjectBase; end            # Defined later.
@@ -163,7 +166,7 @@ class GS
         self.class._attr_table_.values.each do |attribute|
           name = attribute.name
           value_given = (data.key? name)
-          if not value_given and attribute.default != GS::Value::NO_DEFAULT
+          if not value_given and attribute.default?
             data[name] = attribute.default
           end
           unless Contract.valid?(data[name], attribute.type)
