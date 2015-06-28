@@ -4,7 +4,8 @@ First and foremost, this library contains methods I wish were defined in Ruby
 itself:
 
     if object.in? collection
-    if object.not_nil?                                   # Alias non_nil?
+    if object.not_in? collection
+    if object.not_nil?
     str = object.pp_s
     o.define_method(:add) do |x,y| x + y end
 
@@ -24,8 +25,8 @@ itself:
     StringIO.string { |o| o.puts "Hi!" }
 
     class Person
-      attr_predicate :young
-      attr_predicate_rw :successful
+      attr_predicate :young?
+      attr_predicate_rw :successful?
     end
 
 It also loads 'pry' and 'debuglog' and 'contracts' so I don't have to. Set
@@ -42,6 +43,9 @@ $gs_nopry and $gs_nodebuglog if those two are not wanted.
     when Result.loose then ...               # Error!
     ...
     end
+
+Labels are safer than symbols because they guard against misspellings. They
+also “inspect” nicely.
 
 
 *** VALUE OBJECTS (with Contracts validation) ***
@@ -74,7 +78,9 @@ and other conveniences.
 
     p = e.downgrade(Person)     # Back where we started
 
-    # Planned...
-    Person[name: 'John', age: 37]
     Person.info                 # -> "Person[name: String, age: Nat]"
+
+Values are read-only structs with Contracts built-in, default values, predicate
+methods, copy-constructors (with), transformers (upgrade, downgrade).  They
+combine type safety, state safety and convenience.
 
