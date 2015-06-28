@@ -203,6 +203,11 @@ class GS
 
       # ---- ValueObjectBase plumbing over. Now the "real" methods.
 
+      # Alternative constructor: p = Person[name: 'John', age: 39]
+      def self.[](data)
+        new(data)
+      end
+
       def [](key)
         key = _key_lookup_(key)
         @data[key]

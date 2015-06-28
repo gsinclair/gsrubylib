@@ -24,7 +24,7 @@ D "GS::Value" do
     end
   end
 
-  D "Can be created and used" do
+  D "Can be created and used with .new" do
     Person = GS::Value.new(name: String, age: Nat, married: Bool)
                       .default(married: false)
                       .create
@@ -70,6 +70,16 @@ D "GS::Value" do
       Eq p.values(:married, :age), [true, 19]
       E(ArgumentError) { p.values(:level_of_enthusiasm) }
       E(ArgumentError) { p.values(:attributes) }
+    end
+    D "And also with Person[...]" do
+      p = Person[name: 'Dave', age: 32, married: true]
+      Eq p.name, 'Dave'
+      Eq p.age,  32
+      T  p.married?
+      p = Person[name: 'Rita', age: 31]
+      Eq p.name, 'Rita'
+      Eq p.age,  31
+      F  p.married?
     end
   end
 

@@ -53,7 +53,7 @@ and other conveniences.
                       .default(married: false)
                       .create
 
-    p = Person.new(name: 'John', age: 37)
+    p = Person[name: 'John', age: 37]       # or Person.new(...)
     p.name
     p.age
     p.married
