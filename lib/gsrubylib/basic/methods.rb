@@ -21,11 +21,25 @@ GS::Basic.implement(Object, :in?) do
     #
     #   45.in? (1...100)             => true
     #
-    # This method is contained in <tt>object.rb</tt> and
-    # <tt>enumerable.rb</tt>, because it logically belongs in both.
-    #
     def in?(enumerable)
       enumerable.include?(self)
+    end
+  end
+end
+
+
+#
+# Object#not_in?
+#
+GS::Basic.implement(Object, :not_in?) do
+  class Object
+    #
+    # Opposite of #in?
+    #
+    #   3098.not_in? (1...100)       => true
+    #
+    def not_in?(enumerable)
+      not enumerable.include?(self)
     end
   end
 end
@@ -457,7 +471,7 @@ GS::Basic.implement(Class, :attr_predicate, :instance) do
     # Defines a read-only predicate in a class, like:
     #
     #   class Polygon
-    #     attr_predicate :regular
+    #     attr_predicate :regular?
     #     ...
     #   end
     #   p = Polygon.new(...)
@@ -470,7 +484,11 @@ GS::Basic.implement(Class, :attr_predicate, :instance) do
       unless names.all? { |n| Symbol === n or String === n }
         fail ArgumentError, "Class#attr_predicate requires symbol(s) or string(s)"
       end
+      unless names.all? { |n| n.to_s.end_with? '?' }
+        fail ArgumentError, "Class#attr_predicate_rw: predicates should end in a question mark"
+      end
       names.each do |name|
+        name = name.to_s.sub(/\?$/, '')
         inst_variable_name = "@#{name}".to_sym
         define_method "#{name}?" do
           !! instance_variable_get(inst_variable_name)
@@ -493,7 +511,7 @@ GS::Basic.implement(Class, :attr_predicate_rw, :instance) do
     # Defines a read/write predicate in a class, like:
     #
     #   class Polygon
-    #     attr_predicate_rw :regular
+    #     attr_predicate_rw :regular?
     #     ...
     #   end
     #   p = Polygon.new(...)
@@ -506,7 +524,11 @@ GS::Basic.implement(Class, :attr_predicate_rw, :instance) do
       unless names.all? { |n| Symbol === n or String === n }
         fail ArgumentError, "Class#attr_predicate_rw requires symbol(s) or string(s)"
       end
+      unless names.all? { |n| n.to_s.end_with? '?' }
+        fail ArgumentError, "Class#attr_predicate_rw: predicates should end in a question mark"
+      end
       names.each do |name|
+        name = name.to_s.sub(/\?$/, '')
         inst_variable_name = "@#{name}".to_sym
         define_method "#{name}=" do |value|
           instance_variable_set inst_variable_name, value

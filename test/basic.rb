@@ -49,6 +49,12 @@ EOF
       F 17.in? 1..10
       F "C++".in? %w[Perl Ruby Python Java]
     end
+    D "not_in?" do
+      F 5.not_in? 1..10
+      F "Ruby".not_in? %w[Perl Ruby Python Java]
+      T 17.not_in? 1..10
+      T "C++".not_in? %w[Perl Ruby Python Java]
+    end
     D "not_nil? and non_nil?" do
       T 5.not_nil?
       T "hello"[/[aeiou]/].not_nil?
@@ -134,8 +140,8 @@ EOF
 
   D! "Class" do
     class Polygon
-      attr_predicate    :regular
-      attr_predicate_rw :filled
+      attr_predicate    :regular?
+      attr_predicate_rw :filled?
       def initialize(regular=nil)
         @regular = regular
       end
@@ -158,6 +164,16 @@ EOF
       F p.filled?
       D "can't change read-only predicate" do
         E(NoMethodError) { p.regular = true }
+      end
+      D "Must use question mark to specify predicate name" do
+        E(ArgumentError) {
+          class Foo; attr_predicate :x; end
+        }
+        Mt Whitestone.exception.message, /question mark/
+        E(ArgumentError) {
+          class Foo; attr_predicate_rw :x; end
+        }
+        Mt Whitestone.exception.message, /question mark/
       end
     end
   end  # "Class"
