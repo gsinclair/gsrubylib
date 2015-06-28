@@ -7,7 +7,7 @@ require 'gsrubylib/basic'    # Should be unnecessary, but then, this
 #
 #
 # SECTION:   Object
-# Methods:   in?   not_nil?   non_nil?   pp_s   singleton_class   define_method
+# Methods:   in?   not_in?   not_nil?   pp_s   singleton_class   define_method
 #
 #
 
@@ -57,24 +57,6 @@ GS::Basic.implement(Object, :not_nil?) do
     #   nil.not_nil?          # -> false 
     #
     def not_nil?
-      not self.nil?
-    end
-  end
-end
-
-
-#
-# Object#non_nil?
-#
-GS::Basic.implement(Object, :non_nil?) do
-  class Object
-    #
-    # The opposite of <tt>#nil?</tt>.
-    #
-    #   "hello".non_nil?      # -> true
-    #   nil.non_nil?          # -> false 
-    #
-    def non_nil?
       not self.nil?
     end
   end

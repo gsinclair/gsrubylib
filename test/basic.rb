@@ -55,13 +55,11 @@ EOF
       T 17.not_in? 1..10
       T "C++".not_in? %w[Perl Ruby Python Java]
     end
-    D "not_nil? and non_nil?" do
+    D "not_nil?" do
       T 5.not_nil?
       T "hello"[/[aeiou]/].not_nil?
       F "hello"[/z/].not_nil?
       F nil.not_nil?
-      F nil.non_nil?
-      T "seven".non_nil?
     end
     D "pp_s" do
       a = [1,2,3,4,5]
