@@ -83,6 +83,27 @@ D "GS::Value" do
     end
   end
 
+  D "Can create objects with positional parameters" do
+    Person = GS::Value.new(name: String, age: Nat, married: Bool).create
+    p = Person.new('Henry', 17, false)
+    Eq p.name, 'Henry'
+    Eq p.age,  17
+    F  p.married?
+    p = Person['Henry', 17, false]
+    Eq p.name, 'Henry'
+    Eq p.age,  17
+    F  p.married?
+
+    D "Fails on bad input" do
+      E(ArgumentError) { Person["Steve", 83, true, "golf"] }
+      Mt Whitestone.exception.message, /too many/
+      E(ArgumentError) { Person["Steve", 83] }
+      Mt Whitestone.exception.message, /fails its contract/
+      E(ArgumentError) { Person["Steve", 83, :unmarried] }
+      Mt Whitestone.exception.message, /fails its contract/
+    end
+  end
+
   D "Barfs on incomplete data" do
     Person = GS::Value.new(name: String, age: Nat, married: Bool)
                       .default(age: 40)

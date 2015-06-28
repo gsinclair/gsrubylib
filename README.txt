@@ -58,6 +58,7 @@ and other conveniences.
                       .create
 
     p = Person[name: 'John', age: 37]       # or Person.new(...)
+                                            # or Person['John', 37]
     p.name
     p.age
     p.married

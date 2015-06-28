@@ -106,11 +106,13 @@ class GS
           public :new
         end
 
-        # Initialize takes a hash of field=>value pairs.
+        # Two options for providing arguments to #initialize.
+        # 1. A hash of field=>value pairs.
+        # 2. A varargs list of positional parameters.
         # We get ValueObjectBase to do all the work.
-        define_method(:initialize) do |data|
+        define_method(:initialize) do |*args|
           begin
-            validate_and_store_data(data)
+            validate_and_store_data(*args)
           rescue ArgumentError => e
             raise ArgumentError, e.message
           end
@@ -146,6 +148,7 @@ class GS
       # implemented below, which sets @data for other methods to use.
       # Summary: the methods below are free to use:
       #  * class methods _attr_names_ and _attr_table_
+      #    * instance methods of the same name are created for convenience
       #  * instance method @data
 
       # ++++ ValueObjectBase plumbing
@@ -154,7 +157,32 @@ class GS
         private :new
       end
 
-      def validate_and_store_data(data)
+      def _attr_names_
+        self.class._attr_names_
+      end
+
+      def _attr_table_
+        self.class._attr_table_
+      end
+
+      # *args could be:
+      # 1. A list of values equal in number to the list of attributes, except
+      #    for possible default values at the end.
+      # 2. A single argument being a hash of attributes to values.
+      #
+      # If the value object has only one attribute (odd) and it's a hash, then
+      # how do we know whether this is being called positionally or keywordly?
+      # In that case, we can see what's inside the hash. A very special case...
+      def validate_and_store_data(*args)
+        if args.size == 1 and args.first.is_a? Hash
+          validate_and_store_data_hash(args.first)
+        else
+          validate_and_store_data_list(args)
+        end
+      end
+      protected :validate_and_store_data
+
+      def validate_and_store_data_hash(data)
         unless Contract.valid?(data, Hash[Symbol,Any])
           raise ArgumentError, "Value: invalid arguments; need field=>value hash"
         end
@@ -163,7 +191,7 @@ class GS
         unless dodgy_fields.empty?
           raise ArgumentError, "Value: invalid field(s): #{dodgy_fields.join(', ')}"
         end
-        self.class._attr_table_.values.each do |attribute|
+        _attr_table_.values.each do |attribute|
           name = attribute.name
           value_given = (data.key? name)
           if not value_given and attribute.default?
@@ -181,7 +209,19 @@ class GS
         # Now that the data has been validated, save it for later.
         @data = data.freeze
       end
-      protected :validate_and_store_data
+      private :validate_and_store_data_hash
+
+      def validate_and_store_data_list(list)
+        # Turn it into a hash and get the other method to do the work.
+        # First check we don't have too many parameters. Too few may be OK if
+        # there are defaults.
+        if list.size > _attr_names_.size
+          raise ArgumentError, "Value: too many values provided"
+        end
+        data = _attr_names_.zip(list).take(list.size)
+        data = Hash[data]
+        validate_and_store_data_hash(data)
+      end
 
       def _key_lookup_(key)
         # Translation table, allowing for idiomatic predicate lookups:
@@ -193,7 +233,7 @@ class GS
           h = {}
           attributes.each do |attr_name|
             h[attr_name] = attr_name
-            if self.class._attr_table_[attr_name].type == Bool
+            if _attr_table_[attr_name].type == Bool
               h[(attr_name.to_s + '?').intern] = attr_name
             end
           end
@@ -207,8 +247,8 @@ class GS
       # ---- ValueObjectBase plumbing over. Now the "real" methods.
 
       # Alternative constructor: p = Person[name: 'John', age: 39]
-      def self.[](data)
-        new(data)
+      def self.[](*args)
+        new(*args)
       end
 
       def [](key)
@@ -217,7 +257,7 @@ class GS
       end
 
       def attributes
-        self.class._attr_names_
+        _attr_names_
       end
 
       def values(*keys)

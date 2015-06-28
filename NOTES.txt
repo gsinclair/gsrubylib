@@ -47,14 +47,3 @@ It's helpful to consider that the Person class is not actually created until
 the 'end' is reached. But then, it's only then that the 'default' method will
 be executed.
 
--- (3) Allowing creation by providing values only.
-
-  p1 = Person[name: 'Hank', age: 45]
-  p2 = Person['Hank', 45]
-
-It's probably better to use named arguments most of the time, but for value
-objects that have only two attributes, which are obvious, and the order is
-obvious, I think positional creation is acceptable.
-
-
-
