@@ -225,16 +225,16 @@ class GS
 
       def _key_lookup_(key)
         # Translation table, allowing for idiomatic predicate lookups:
-        #   :name       ->    :name
-        #   :age        ->    :age
-        #   :married    ->    :married
-        #   :married?   ->    :married
+        #   :name       ->    value
+        #   :age        ->    value
+        #   :married    ->    value
+        #   :married?   ->    value
         @table ||= (
           h = {}
           attributes.each do |attr_name|
-            h[attr_name] = attr_name
+            h[attr_name] = @data[attr_name]
             if _attr_table_[attr_name].type == Bool
-              h[(attr_name.to_s + '?').intern] = attr_name
+              h[(attr_name.to_s + '?').intern] = @data[attr_name]
             end
           end
           h
@@ -252,8 +252,7 @@ class GS
       end
 
       def [](key)
-        key = _key_lookup_(key)
-        @data[key]
+        _key_lookup_(key)
       end
 
       def attributes
@@ -264,8 +263,7 @@ class GS
         if keys.empty?
           @data.values
         else
-          keys = keys.map { |k| _key_lookup_(k) }
-          @data.values_at(*keys)
+          keys.map { |k| _key_lookup_(k) }
         end
       end
 
