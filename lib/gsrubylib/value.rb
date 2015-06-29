@@ -10,10 +10,30 @@ require 'ap'
 
 class GS
 
+  # NOTE The API is being redesigned, so the documentation below will soon be
+  # incorrect. I will fix it after the change is made.
+  #
   # Example:
   #   Person = GS::Value.new(name: String, age: Nat, married: Bool)
   #                     .default(married: false)
   #                     .create
+  #
+  # Also allowed:
+  #   Person = GS::Value.new(name: String, age: Nat, married: Bool) do
+  #     def year_of_birth
+  #       Date.today.year - age
+  #     end
+  #   end
+  #
+  # To have customisation and default, you need this:
+  #   Person = GS::Value.new(name: String, age: Nat, married: Bool) do
+  #                     .default(married: false) do
+  #     def year_of_birth
+  #       Date.today.year - age
+  #     end
+  #   end
+  #
+  # I hope to implement a better way of specifying the defaults after this change.
   class Value
     class Attribute < Struct.new(:name, :type, :default)
       def default?
@@ -23,11 +43,21 @@ class GS
     NO_DEFAULT = Object.new.freeze
     class ValueObjectBase; end            # Defined later.
 
+    # This is the way to create a Value object.
+    Contract HashOf[Symbol, Any] => Class
+    def Value.[](args)
+      Value.new(args).create
+    end
+
+    def Value.create(args, &block)
+      Value.new(args).create(&block)
+    end
+
     # The attribute table, @attributes, looks like this when fully populated:
     #   { name: Attribute(:name,    String,  NO_DEFAULT),
     #     age:  Attribute(:age,     Nat,     NO_DEFAULT),
     #     age:  Attribute(:married, Bool,    false) }
-    Contract HashOf[Symbol, Any] => Any
+    #Contract HashOf[Symbol, Any] => Any
     def initialize(args)
       @attributes = {}
       args.each do |attr_name, type|
@@ -35,23 +65,8 @@ class GS
       end
     end
 
-    Contract HashOf[Symbol, Any] => Value
-    def default(args)
-      check_attributes_are_legit(args.keys)
-      args.each do |attr_name, default_value|
-        contract = @attributes[attr_name].type
-        if Contract.valid?(default_value, contract)
-          @attributes[attr_name].default = default_value
-        else
-          raise ArgumentError,
-            "Value: default value for '#{attr_name}' violates contract #{contract}"
-        end
-      end
-      self
-    end
-
-    Contract None => Class
-    def create()
+    #Contract None => Class
+    def create(&block)
       # We return an anonymous class that extends ValueObjectBase.
       # Methods we define:
       #  - ._attr_names_   (easy access to the names)
@@ -79,20 +94,13 @@ class GS
       make_metadata_methods(c)
       make_initialize(c)
       make_attribute_methods(c)
+      if block_given?
+        c.class_eval(&block)         # or should it be class_exec ?
+      end
       c
     end
 
-    Contract None => HashOf[Symbol, Attribute]
-    def attribute_table_for_testing
-      @attributes
-    end
-
     private
-    def check_attributes_are_legit(args)
-      unless x = args.find { |arg| @attributes.key? arg }
-        raise ArgumentError, "Value: attribute '#{x}' doesn't exist"
-      end
-    end
 
     def make_metadata_methods(c)
       attributes = @attributes
@@ -141,28 +149,67 @@ class GS
 
     # =======================
 
+    # ValueObjectBase -- base class for value objects
+    #
+    # This class is not for direct use. Users create value objects with Value[...],
+    # which returns an anonymous class that extends this one. The code in Value
+    # defines the class methods _attr_names_ and _attr_table_. These are needed for
+    # the code in ValueObjectBase to function. The #initialize in the subclass will
+    # call validate_and_store_data() implemented below, which sets @data for
+    # other methods to use.
+    #
+    # Summary: the methods in ValueObjectBase are free to use:
+    #  * class methods _attr_names_ and _attr_table_
+    #    * instance methods of the same name are created for convenience
+    #  * instance method @data
+    #
+    # Instance methods of interest to users of value objects:
+    #  * []      e.g. p[:name]
+    #  * attributes
+    #  * values
+    #  * with
+    #  * upgrade
+    #  * downgrade
+    #  * to_s
+    #  * inspect
+    #  * ==
+    #
+    # Class methods of interest:
+    #  * default (while defining the value object class)
+    #  * info    (e.g. Person.info to get string describing the class)
     class ValueObjectBase
-      # When a subclass is created, it will have class methods _attr_names_ and
-      # _attr_table_.
-      # When an object is created, its initialize will call validate_and_store_data(),
-      # implemented below, which sets @data for other methods to use.
-      # Summary: the methods below are free to use:
-      #  * class methods _attr_names_ and _attr_table_
-      #    * instance methods of the same name are created for convenience
-      #  * instance method @data
 
       # ++++ ValueObjectBase plumbing
 
       class << self
+        # A ValueObjectBase object is only to be created via Value[...].
         private :new
       end
 
+      # Helpful method to access attribute names within an instance method.
       def _attr_names_
         self.class._attr_names_
       end
 
+      # Helpful method to access the attribute table within an instance method.
       def _attr_table_
         self.class._attr_table_
+      end
+
+      #Contract HashOf[Symbol, Any] => Nil
+      def self.default(args)
+        args.each do |attr_name, default_value|
+          attribute = _attr_table_.fetch(attr_name)   # The object we're updating.
+          contract = attribute.type
+          if Contract.valid?(default_value, contract)
+            attribute.default = default_value
+          else
+            raise ArgumentError,
+              "Value: default value for '#{attr_name}' violates contract #{contract}"
+          end
+        end
+      rescue KeyError => e
+        raise ArgumentError, "Value: can't set default for invalid key"
       end
 
       # *args could be:
