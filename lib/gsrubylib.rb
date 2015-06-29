@@ -37,6 +37,11 @@ def GS.added_methods
   end
 end
 
+# Now load the other parts of the gsrubylib library.
+require 'gsrubylib/value'
+require 'gsrubylib/label'
+require 'gsrubylib/contracts-extra'
+
 __END__
 
 
