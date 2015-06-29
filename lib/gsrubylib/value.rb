@@ -10,31 +10,75 @@ require 'ap'
 
 class GS
 
-  # NOTE The API is being redesigned, so the documentation below will soon be
-  # incorrect. I will fix it after the change is made.
+  # Value is like Ruby's Struct except the classes it creates are read-only.
+  # That is, it creates "value objects" whose state is not subject to change.
+  # There are additional features:
+  #  * types are specified and enforced when a new object is created
+  #    * this uses the excellent "contracts.ruby" library
+  #  * default values
+  #  * predicate access methods for boolean attributes
+  #    * e.g. person.married? as an alternative to person.married
+  #  * create new objects with 'with'
+  #  * upgrade or downgrade to different (compatible) value object types
   #
-  # Example:
-  #   Person = GS::Value.new(name: String, age: Nat, married: Bool)
-  #                     .default(married: false)
-  #                     .create
+  # Example 1
   #
-  # Also allowed:
-  #   Person = GS::Value.new(name: String, age: Nat, married: Bool) do
-  #     def year_of_birth
-  #       Date.today.year - age
+  #   Person = Value.create(name: String, age: Nat, married: Bool)
+  #   p = Person[name: 'Sam', age: 37, married: false]
+  #   p.name
+  #   p.age
+  #   p.married?
+  #   p = p.with(married: true)
+  #
+  # Example 2
+  #
+  #   Person = Value.create(name: String, age: Nat, married: Bool) do
+  #     default married: false
+  #   end
+  #   p = Person['Anna', 16]       # can specify parameters positionally
+  #   p = Person.new('Anna', 16)   # can use 'new' if you like
+  #   p.values                     # -> ['Anna', 37, false]
+  #   p.values(:married?, :age)    # -> [false, 37]
+  #   p.attributes                 # -> [:name, :age, :married]
+  #
+  #
+  # Example 3
+  #
+  #   Note = Value.create(base:       Symbol,
+  #                       accidental: Or[:flat,:sharp,nil],
+  #                       octave:     (1..8)) do
+  #
+  #     default accidental: nil, octave: 4
+  #
+  #     def semitone_lower
+  #       ...
+  #     end
+  #
+  #     def semitone_higher
+  #       ...
   #     end
   #   end
   #
-  # To have customisation and default, you need this:
-  #   Person = GS::Value.new(name: String, age: Nat, married: Bool) do
-  #                     .default(married: false) do
-  #     def year_of_birth
-  #       Date.today.year - age
-  #     end
-  #   end
+  #   middle_c = Note[:C]
+  #   middle_d = middle_c.semitone_higher.semitone_higher
   #
-  # I hope to implement a better way of specifying the defaults after this change.
+  # Example 4
+  #
+  #   Person   = Value.create(name: String, age: Nat)
+  #   Employee = Value.create(name: String, age: Nat, salary: Nat)
+  #
+  #   p = Person['Rob', 29]
+  #   e = p.upgrade(Employee, salary: 48000]
+  #   p = e.downgrade(Person)
+  #
   class Value
+    # An attribute table looks something like this when initially populated:
+    #   { name: Attribute(:name,    String,  NO_DEFAULT),
+    #     age:  Attribute(:age,     Nat,     NO_DEFAULT),
+    #     age:  Attribute(:married, Bool,    NO_DEFAULT) }
+    #
+    # After the 'default' method is called in class scope, some of the
+    # Attributes will have a default value.
     class Attribute < Struct.new(:name, :type, :default)
       def default?
         self.default != NO_DEFAULT
@@ -43,20 +87,19 @@ class GS
     NO_DEFAULT = Object.new.freeze
     class ValueObjectBase; end            # Defined later.
 
-    # This is the way to create a Value object.
-    Contract HashOf[Symbol, Any] => Class
-    def Value.[](args)
-      Value.new(args).create
-    end
-
+    # Value.create()
+    #
+    # See class documentation for examples.
+    #
+    Contract HashOf[Symbol, Any], Maybe[Proc] => Class
     def Value.create(args, &block)
       Value.new(args).create(&block)
     end
 
-    # The attribute table, @attributes, looks like this when fully populated:
-    #   { name: Attribute(:name,    String,  NO_DEFAULT),
-    #     age:  Attribute(:age,     Nat,     NO_DEFAULT),
-    #     age:  Attribute(:married, Bool,    false) }
+    class << self
+      protected :new
+    end
+
     #Contract HashOf[Symbol, Any] => Any
     def initialize(args)
       @attributes = {}

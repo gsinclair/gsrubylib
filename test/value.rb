@@ -1,7 +1,7 @@
 require 'gsrubylib/value'
 
 D "GS::Value" do
-  D "Can be created and used with .new" do
+  D "Can be created and used with .create" do
     Person = GS::Value.create(name: String, age: Nat, married: Bool) do
       default married: false
     end
@@ -21,7 +21,7 @@ D "GS::Value" do
       Eq p.married?, false
     end
     D "With a maybe-nil (i.e. optional) field" do
-      X = GS::Value[a: Integer, b: Maybe[String]]
+      X = GS::Value.create(a: Integer, b: Maybe[String])
       E! { X.new(a: 6, b: "foo") }
       E! { X.new(a: 6, b: nil) }
       E! { X.new(a: 6) }
@@ -60,8 +60,13 @@ D "GS::Value" do
     end
   end
 
+  D "Can't be created with .new" do
+    E(NoMethodError) { GS::Value.new(name: String) }
+    Mt Whitestone.exception.message, /protected method/
+  end
+
   D "Can create objects with positional parameters" do
-    Person = GS::Value[name: String, age: Nat, married: Bool]
+    Person = GS::Value.create(name: String, age: Nat, married: Bool)
     p = Person.new('Henry', 17, false)
     Eq p.name, 'Henry'
     Eq p.age,  17
@@ -81,7 +86,7 @@ D "GS::Value" do
     end
   end
 
-  D "Can customise the class on creation and avoid explicit 'create' method" do
+  D "Can customise the class on creation" do
     D "With no defaults" do
       Eg = GS::Value.create(a: Integer, b: Integer) do
         def sum
@@ -92,8 +97,14 @@ D "GS::Value" do
       Eq x.sum, 18
     end
     D "With defaults" do
-    end
-    D "With no customisation but also no 'create'" do
+      Eg = GS::Value.create(a: Integer, b: Integer) do
+        default a: 95
+        def sum
+          a+b
+        end
+      end
+      x = Eg[b: 13]
+      Eq x.sum, 108
     end
   end
 
@@ -110,12 +121,12 @@ D "GS::Value" do
   end
 
   D "Barfs on invalid data" do
-    Person = GS::Value[name: String, age: Nat, married: Bool]
+    Person = GS::Value.create(name: String, age: Nat, married: Bool)
     E(ArgumentError) { Person.new(name: 'Alan', age: 5, married: false, x: 57) }
   end
 
   D "Barfs on data not satisfying the contract" do
-    Person = GS::Value[name: String, age: Nat, married: Bool]
+    Person = GS::Value.create(name: String, age: Nat, married: Bool)
     E(ArgumentError) { Person.new(name: [4,5,6], age: 50, married: false) }
     E(ArgumentError) { Person.new(name: 'Owen', age: -2, married: true) }
     E(ArgumentError) { Person.new(name: 'Jane', age: 5, married: nil) }
@@ -123,7 +134,7 @@ D "GS::Value" do
   end
 
   D "Equality, hashability" do
-    Tuple = GS::Value[a: Symbol, b: Neg]
+    Tuple = GS::Value.create(a: Symbol, b: Neg)
     t1 = Tuple.new(a: :fred, b: -8)
     t2 = Tuple.new(a: :fred, b: -8)
     t3 = Tuple.new(b: -8, a: :fred)
@@ -139,7 +150,7 @@ D "GS::Value" do
   end
 
   D "to_s, inspect, to_hash" do
-    Person = GS::Value[name: String, age: Nat, married: Bool]
+    Person = GS::Value.create(name: String, age: Nat, married: Bool)
     p = Person.new(name: 'John', age: 50, married: false)
     Eq p.to_s, %{Person(name: "John", age: 50, married: false)}
     Eq p.inspect, p.to_s
@@ -147,7 +158,7 @@ D "GS::Value" do
   end
 
   D "Can create new value from old (with modifications)" do
-    Person = GS::Value[name: String, age: Nat, married: Bool]
+    Person = GS::Value.create(name: String, age: Nat, married: Bool)
     p = Person.new(name: 'John', age: 50, married: false)
     Eq p.name, 'John'
     Eq p.age,  50
@@ -163,8 +174,8 @@ D "GS::Value" do
   end
 
   D "Can upgrade to a new value object" do
-    Person   = GS::Value[name: String, age: Nat]
-    Employee = GS::Value[name: String, age: Nat, title: Maybe[String], salary: Nat]
+    Person   = GS::Value.create(name: String, age: Nat)
+    Employee = GS::Value.create(name: String, age: Nat, title: Maybe[String], salary: Nat)
     # Test 1
     p = Person.new(name: 'Ally', age: 19)
     e = p.upgrade(Employee, title: 'Student', salary: 15000)
@@ -192,8 +203,8 @@ D "GS::Value" do
   end
 
   D "Can downgrade to a new value object" do
-    Person   = GS::Value[name: String, age: Nat]
-    Employee = GS::Value[name: String, age: Nat, title: Maybe[String], salary: Nat]
+    Person   = GS::Value.create(name: String, age: Nat)
+    Employee = GS::Value.create(name: String, age: Nat, title: Maybe[String], salary: Nat)
     e = Employee.new(name: 'Ally', age: 19, title: 'Student', salary: 15000)
     p = e.downgrade(Person)
     Ko p, Person
@@ -201,7 +212,7 @@ D "GS::Value" do
     Eq p.age,    19
 
     D "Fails when class is incompatible" do
-      Sausage = GS::Value[skin: Symbol, filling: Symbol]
+      Sausage = GS::Value.create(skin: Symbol, filling: Symbol)
       e = Employee.new(name: 'Ally', age: 19, title: 'Student', salary: 15000)
       E(ArgumentError) { e.downgrade(Sausage) }
     end
