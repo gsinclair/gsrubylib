@@ -45,8 +45,8 @@ D "GS::Value" do
       Eq p.values(:name, :age, :married), ['John', 19, true]
       Eq p.values(:name, :age, :married?), ['John', 19, true]
       Eq p.values(:married, :age), [true, 19]
-      E(ArgumentError) { p.values(:level_of_enthusiasm) }
-      E(ArgumentError) { p.values(:attributes) }
+      E(GS::ValueError) { p.values(:level_of_enthusiasm) }
+      E(GS::ValueError) { p.values(:attributes) }
     end
     D "And also with Person[...]" do
       p = Person[name: 'Dave', age: 32, married: true]
@@ -77,11 +77,11 @@ D "GS::Value" do
     F  p.married?
 
     D "Fails on bad input" do
-      E(ArgumentError) { Person["Steve", 83, true, "golf"] }
+      E(GS::ValueError) { Person["Steve", 83, true, "golf"] }
       Mt Whitestone.exception.message, /too many/
-      E(ArgumentError) { Person["Steve", 83] }
+      E(GS::ValueError) { Person["Steve", 83] }
       Mt Whitestone.exception.message, /fails its contract/
-      E(ArgumentError) { Person["Steve", 83, :unmarried] }
+      E(GS::ValueError) { Person["Steve", 83, :unmarried] }
       Mt Whitestone.exception.message, /fails its contract/
     end
   end
@@ -113,24 +113,24 @@ D "GS::Value" do
       default age: 40
     end
     p = nil
-    E(ArgumentError)  { p = Person.new(name: 'John') }
-    E(ArgumentError)  { p = Person.new(name: 'Anne', age: 21) }
-    E!(ArgumentError) { p = Person.new(name: 'Anne', age: 21, married: false) }
-    E!(ArgumentError) { p = Person.new(name: 'Anne', married: true) }
+    E(GS::ValueError)  { p = Person.new(name: 'John') }
+    E(GS::ValueError)  { p = Person.new(name: 'Anne', age: 21) }
+    E!(GS::ValueError) { p = Person.new(name: 'Anne', age: 21, married: false) }
+    E!(GS::ValueError) { p = Person.new(name: 'Anne', married: true) }
     T p.married?
   end
 
   D "Barfs on invalid data" do
     Person = GS::Value.create(name: String, age: Nat, married: Bool)
-    E(ArgumentError) { Person.new(name: 'Alan', age: 5, married: false, x: 57) }
+    E(GS::ValueError) { Person.new(name: 'Alan', age: 5, married: false, x: 57) }
   end
 
   D "Barfs on data not satisfying the contract" do
     Person = GS::Value.create(name: String, age: Nat, married: Bool)
-    E(ArgumentError) { Person.new(name: [4,5,6], age: 50, married: false) }
-    E(ArgumentError) { Person.new(name: 'Owen', age: -2, married: true) }
-    E(ArgumentError) { Person.new(name: 'Jane', age: 5, married: nil) }
-    E(ArgumentError) { Person.new(name: 'Jane', age: 5, married: 7) }
+    E(GS::ValueError) { Person.new(name: [4,5,6], age: 50, married: false) }
+    E(GS::ValueError) { Person.new(name: 'Owen', age: -2, married: true) }
+    E(GS::ValueError) { Person.new(name: 'Jane', age: 5, married: nil) }
+    E(GS::ValueError) { Person.new(name: 'Jane', age: 5, married: 7) }
   end
 
   D "Equality, hashability" do
@@ -168,7 +168,7 @@ D "GS::Value" do
     Eq p.age,  51
     T  p.married?
     D "Fails if incorrect key is applied" do
-      E(ArgumentError) { p.with(salary: 10_000) }
+      E(GS::ValueError) { p.with(salary: 10_000) }
       Mt Whitestone.exception.message, /invalid field/
     end
   end
@@ -193,10 +193,10 @@ D "GS::Value" do
 
     D "Fails if incorrect additional data provided" do
       p = Person.new(name: 'Jann', age: 28)
-      E(ArgumentError) {
+      E(GS::ValueError) {
         e = p.upgrade(Employee, title: 'Nurse', salary: 58576, time_served: 4)
       }
-      E(ArgumentError) {
+      E(GS::ValueError) {
         e = p.upgrade(Employee, title: 'Nurse', salary: 'High')
       }
     end
@@ -214,7 +214,7 @@ D "GS::Value" do
     D "Fails when class is incompatible" do
       Sausage = GS::Value.create(skin: Symbol, filling: Symbol)
       e = Employee.new(name: 'Ally', age: 19, title: 'Student', salary: 15000)
-      E(ArgumentError) { e.downgrade(Sausage) }
+      E(GS::ValueError) { e.downgrade(Sausage) }
     end
   end
 
@@ -234,7 +234,7 @@ D "GS::Value" do
   end
 
   D "Doesn't allow specification where default value fails contract" do
-    E(ArgumentError) {
+    E(GS::ValueError) {
       Person = GS::Value.create(name: String, age: Nat, married: Bool) do
         default name: 56
       end

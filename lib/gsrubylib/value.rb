@@ -10,6 +10,37 @@ require 'ap'
 
 class GS
 
+  class ValueError < StandardError
+    attr_accessor :internal_backtrace
+
+    # Raises a ValueError with the classname included in the given message.
+    # Also removes innards from the backtrace. Those innards are available via
+    # #internal_backtrace.
+    def ValueError.[](object, message)
+      # Get the classname right for the message.
+      classname =
+        if object.is_a? Class
+          object.name
+        else
+          object.class.name
+        end
+      classname =
+        if classname.nil?
+          "Value"
+        else
+          classname.split('::').last
+        end
+      exception = ValueError.new("#{classname}: #{message}")
+      # Now fiddle the backtace and store the internal part.
+      exception.set_backtrace \
+        Kernel.caller.drop_while { |line| line['gsrubylib/value.rb'] }
+      exception.internal_backtrace = \
+        Kernel.caller.take_while { |line| line['gsrubylib/value.rb'] }
+      # Done; raise the exception.
+      raise exception
+    end
+  end
+
   # Value is like Ruby's Struct except the classes it creates are read-only.
   # That is, it creates "value objects" whose state is not subject to change.
   # There are additional features:
@@ -165,7 +196,7 @@ class GS
           begin
             validate_and_store_data(*args)
           rescue ArgumentError => e
-            raise ArgumentError, e.message
+            ValueError[self, e.message]
           end
         end
       end
@@ -241,18 +272,19 @@ class GS
 
       #Contract HashOf[Symbol, Any] => Nil
       def self.default(args)
+        debug self.name
         args.each do |attr_name, default_value|
           attribute = _attr_table_.fetch(attr_name)   # The object we're updating.
           contract = attribute.type
           if Contract.valid?(default_value, contract)
             attribute.default = default_value
           else
-            raise ArgumentError,
-              "Value: default value for '#{attr_name}' violates contract #{contract}"
+            ValueError[self, "default value for '#{attr_name}' " +
+                             "violates contract #{contract}"]
           end
         end
       rescue KeyError => e
-        raise ArgumentError, "Value: can't set default for invalid key"
+        raise ValueError[self, "can't set default for invalid key"]
       end
 
       # *args could be:
@@ -274,12 +306,12 @@ class GS
 
       def validate_and_store_data_hash(data)
         unless Contract.valid?(data, Hash[Symbol,Any])
-          raise ArgumentError, "Value: invalid arguments; need field=>value hash"
+          ValueError[self, "invalid arguments; need field=>value hash"]
         end
         # Now validate it.
         dodgy_fields = data.keys - self.attributes
         unless dodgy_fields.empty?
-          raise ArgumentError, "Value: invalid field(s): #{dodgy_fields.join(', ')}"
+          ValueError[self, "invalid field(s): #{dodgy_fields.join(', ')}"]
         end
         _attr_table_.values.each do |attribute|
           name = attribute.name
@@ -289,11 +321,11 @@ class GS
           end
           unless Contract.valid?(data[name], attribute.type)
             message = StringIO.string { |o|
-              o.puts "Value for attribute '#{name}' fails its contract"
+              o.puts "value for attribute '#{name}' fails its contract"
               o.puts "  Contract: #{attribute.type}"
               o.puts "     Value: #{data[name].inspect}"
             }
-            raise ArgumentError, message
+            ValueError[self, message]
           end
         end
         # Now that the data has been validated, save it for later.
@@ -306,7 +338,7 @@ class GS
         # First check we don't have too many parameters. Too few may be OK if
         # there are defaults.
         if list.size > _attr_names_.size
-          raise ArgumentError, "Value: too many values provided"
+          ValueError[self, "too many values provided"]
         end
         data = _attr_names_.zip(list).take(list.size)
         data = Hash[data]
@@ -331,7 +363,7 @@ class GS
         )
         @table.fetch(key)
       rescue KeyError
-        raise ArgumentError, "Value: invalid field '#{key}'"
+        ValueError[self, "invalid field '#{key}'"]
       end
 
       # ---- ValueObjectBase plumbing over. Now the "real" methods.
@@ -359,13 +391,13 @@ class GS
 
       def with(new_data)
         unless Contract.valid?(new_data, HashOf[Symbol,Any])
-          raise ArgumentError, "Value: invalid argument to 'with'"
+          ValueError[self, "invalid argument to 'with'"]
         end
         begin
           new_data = @data.merge(new_data)
           self.class.new(new_data)
         rescue ArgumentError => e
-          raise ArgumentError, e.message
+          ValueError[self, e.message]
         end
       end
 
