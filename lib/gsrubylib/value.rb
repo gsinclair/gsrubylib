@@ -6,11 +6,13 @@
 #              values. Oh, and creating a new object from an old one.
 
 require 'gsrubylib'
-require 'ap'
 
 class GS
 
   class ValueError < StandardError
+    # I'm turning it off for now while development is active.
+    REMOVE_INNARDS = false
+
     attr_accessor :internal_backtrace
 
     # Raises a ValueError with the classname included in the given message.
@@ -32,8 +34,10 @@ class GS
         end
       exception = ValueError.new("#{classname}: #{message}")
       # Now fiddle the backtace and store the internal part.
-      exception.set_backtrace \
-        Kernel.caller.drop_while { |line| line['gsrubylib/value.rb'] }
+      if REMOVE_INNARDS
+        exception.set_backtrace \
+          Kernel.caller.drop_while { |line| line['gsrubylib/value.rb'] }
+      end
       exception.internal_backtrace = \
         Kernel.caller.take_while { |line| line['gsrubylib/value.rb'] }
       # Done; raise the exception.
