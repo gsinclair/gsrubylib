@@ -1,3 +1,3 @@
 class GS
-  VERSION = "0.4a"
+  VERSION = "0.4"
 end
