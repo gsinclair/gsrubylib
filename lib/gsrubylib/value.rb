@@ -256,6 +256,7 @@ class GS
     #  * default (while defining the value object class)
     #  * info    (e.g. Person.info to get string describing the class)
     class ValueObjectBase
+      include Contracts
 
       # ++++ ValueObjectBase plumbing
 
@@ -465,7 +466,11 @@ class GS
           final_result = line1 + rest + ']'
         end
 
-        Contract Attribute => [String, String, String]
+        #Contract Attribute => [String, String, String]
+        # Suppressed this contract because I'm getting an error I can't explain.
+        # The error message is detailed and says that the class needs to have
+        # 'include Contracts' _before_ you open the singleton class. I've done
+        # that, but the error hasn't gone away.
         def preprocess_content(a)
           type_str = a.type.to_s.gsub(/Contracts::/, '')
           default_str =
