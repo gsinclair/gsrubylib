@@ -19,15 +19,3 @@ class InRange < CallableClass
     @range.include?(val) and Contract.valid?(val, @type)
   end
 end
-
-# e.g. RangeOf[Date]
-class RangeOf < CallableClass
-  def initialize(type)
-    @type = type
-  end
-
-  def valid?(val)
-    val.is_a? Range and
-      Contract.valid?(val.first, @type)
-  end
-end

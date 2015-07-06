@@ -51,7 +51,7 @@ class Module
   end
 end
 
-class GS
+module GS
   class Basic
 
     class << Basic

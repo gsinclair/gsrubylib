@@ -7,7 +7,7 @@
 
 require 'gsrubylib'
 
-class GS
+module GS
 
   class ValueError < StandardError
     # I'm turning it off for now while development is active.
@@ -126,7 +126,9 @@ class GS
     #
     # See class documentation for examples.
     #
-    Contract HashOf[Symbol, Any], Maybe[Proc] => Class
+    ### Contract suppressed as I don't think it's possible to specify an
+    ### optional block at the moment. See #174.
+    #Contract HashOf[Symbol, Any], Maybe[Proc] => Class
     def Value.create(args, &block)
       Value.new(args).create(&block)
     end
@@ -143,6 +145,8 @@ class GS
       end
     end
 
+    ### Contract suppressed as I don't think it's possible to specify an
+    ### optional block at the moment. See #174.
     #Contract None => Class
     def create(&block)
       # We return an anonymous class that extends ValueObjectBase.

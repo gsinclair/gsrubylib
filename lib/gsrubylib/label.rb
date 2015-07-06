@@ -1,6 +1,6 @@
 require 'gsrubylib'
 
-class GS
+module GS
   class Label
     class << self
       private :new

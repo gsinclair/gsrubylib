@@ -3,15 +3,17 @@
 # Now I don't have to load these separately in all my code.
 require 'debuglog'   unless $gs_nodebuglog
 require 'pry'        unless $gs_nopry
-require 'contracts'
-include Contracts
+
+# Installs Contracts into Object and defines a couple of aliases:
+# Int for Integer, Str for String.
+require 'gsrubylib/contracts'
 
 # A containing class into which several classes are defined so as not to pollute
 # the top-level namespace.
 #  * GS::Basic        (defines methods in core classes; don't use this directly)
 #  * GS::Label        (create type-safe labels)
 #  * GS::ErrorHelper  (not programmed or properly considered yet)
-class GS
+module GS
 end
 
 require 'gsrubylib/basic'
