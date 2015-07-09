@@ -53,9 +53,11 @@ also “inspect” nicely.
 These are read-only structs with type safety, predicate methods, copy constructors
 and other conveniences.
 
-    Person = GS::Value.new(name: String, age: Nat, married: Bool)
-                      .default(married: false)
-                      .create
+    Person =
+      GS::Value[name: String, age: Nat, married: Bool] do
+        default married: false
+        ... other methods ...
+      end
 
     p = Person[name: 'John', age: 37]       # or Person.new(...)
                                             # or Person['John', 37]
