@@ -54,7 +54,7 @@ These are read-only structs with type safety, predicate methods, copy constructo
 and other conveniences.
 
     Person =
-      GS::Value[name: String, age: Nat, married: Bool] do
+      GS::Value.create(name: String, age: Nat, married: Bool) do
         default married: false
         ... other methods ...
       end

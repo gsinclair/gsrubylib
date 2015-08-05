@@ -233,12 +233,12 @@ module GS
 
     # ValueObjectBase -- base class for value objects
     #
-    # This class is not for direct use. Users create value objects with Value[...],
-    # which returns an anonymous class that extends this one. The code in Value
-    # defines the class methods _attr_names_ and _attr_table_. These are needed for
-    # the code in ValueObjectBase to function. The #initialize in the subclass will
-    # call validate_and_store_data() implemented below, which sets @data for
-    # other methods to use.
+    # This class is not for direct use. Users create value objects with
+    # Value.create(...), which returns an anonymous class that extends this one.
+    # The code in Value defines the class methods _attr_names_ and _attr_table_.
+    # These are needed for the code in ValueObjectBase to function. The
+    # #initialize in the subclass will call validate_and_store_data()
+    # implemented below, which sets @data for other methods to use.
     #
     # Summary: the methods in ValueObjectBase are free to use:
     #  * class methods _attr_names_ and _attr_table_
